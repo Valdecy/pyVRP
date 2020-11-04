@@ -187,10 +187,12 @@ def show_report(solution, distance_matrix, parameters, velocity, fixed_cost, var
     return report_df
 
 # Function: Route Evalution & Correction
-def target_function(population, distance_matrix, parameters, velocity, fixed_cost, variable_cost, capacity, penalty_value, time_window, route):
+# Function: Route Evalution & Correction
+def target_function(population, distance_matrix, parameters, velocity, fixed_cost, variable_cost, capacity, penalty_value, time_window, route, fleet_size = []):
     cost     = [[0] for i in range(len(population))]
     tw_late  = parameters[:, 2]
     tw_st    = parameters[:, 3]
+    flt_cnt  = [0]*len(fleet_size)
     if (route == 'open'):
         end =  2 
     else:
@@ -200,15 +202,16 @@ def target_function(population, distance_matrix, parameters, velocity, fixed_cos
         size       = len(individual[1])
         i          = 0
         pnlt       = 0
+        flt_cnt    = [0]*len(fleet_size)
         while (size > i): # i subroutes 
-            dist       = evaluate_distance(distance_matrix, individual[0][i], individual[1][i])
+            dist = evaluate_distance(distance_matrix, individual[0][i], individual[1][i])
             if(time_window == 'with'):
                 wait, time = evaluate_time(distance_matrix, parameters, depot = individual[0][i], subroute = individual[1][i], velocity = [velocity[individual[2][i][0]]])
             else:
-                wait = []
-                time = []
-            cap        = evaluate_capacity(parameters, depot = individual[0][i], subroute = individual[1][i])
-            cost_s     = evaluate_cost(dist, wait, parameters, depot = individual[0][i], subroute = individual[1][i], fixed_cost = [fixed_cost[individual[2][i][0]]], variable_cost = [variable_cost[individual[2][i][0]]], time_window = time_window)      
+                wait       = []
+                time       = []
+            cap    = evaluate_capacity(parameters, depot = individual[0][i], subroute = individual[1][i])
+            cost_s = evaluate_cost(dist, wait, parameters, depot = individual[0][i], subroute = individual[1][i], fixed_cost = [fixed_cost[individual[2][i][0]]], variable_cost = [variable_cost[individual[2][i][0]]], time_window = time_window)      
             pnlt       = pnlt + sum( x >  capacity[individual[2][i][0]] for x in cap[0:-1] )
             if(time_window == 'with'):
                 if (route == 'open'):
@@ -216,10 +219,16 @@ def target_function(population, distance_matrix, parameters, velocity, fixed_cos
                 else:
                     subroute_ = individual[0][i] + individual[1][i] + individual[0][i]
                 pnlt = pnlt + sum(x > y + z for x, y, z in zip(time, tw_late[subroute_] , tw_st[subroute_]))                      
+            if (len(fleet_size) > 0):
+                flt_cnt[individual[2][i][0]] = flt_cnt[individual[2][i][0]] + 1 
+            if (size <= i + 1):
+                for v in range(0, len(fleet_size)):
+                    v_sum = flt_cnt[v] - fleet_size[v]
+                    if (v_sum > 0):
+                        pnlt = pnlt + v_sum
             cost[k][0] = cost[k][0] + cost_s[-end] + pnlt*penalty_value
             size = len(individual[1])
             i = i + 1
-            cost
     cost_total = copy.deepcopy(cost)
     return cost_total, population
 
@@ -483,7 +492,7 @@ def elite_distance(individual, distance_matrix, route):
     return round(td,2)
 
 # GA-VRP Function
-def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fixed_cost, variable_cost, capacity, population_size = 5, vehicle_types = 1, n_depots = 1, route = 'closed', model = 'vrp', time_window = 'without', mutation_rate = 0.1, elite = 0, generations = 50, penalty_value = 1000, graph = True):    
+def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fixed_cost, variable_cost, capacity, population_size = 5, vehicle_types = 1, n_depots = 1, route = 'closed', model = 'vrp', time_window = 'without', fleet_size = [], mutation_rate = 0.1, elite = 0, generations = 50, penalty_value = 1000, graph = True):    
     start           = tm.time()
     count           = 0
     solution_report = ['None']
@@ -499,7 +508,7 @@ def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fi
         parameters[i, 0] = 0
     
     population       = initial_population(coordinates, distance_matrix, population_size = population_size, vehicle_types = vehicle_types, n_depots = n_depots, model = model)
-    cost, population = target_function(population, distance_matrix, parameters, velocity, fixed_cost, variable_cost, max_capacity, penalty_value, time_window = time_window, route = route)   
+    cost, population = target_function(population, distance_matrix, parameters, velocity, fixed_cost, variable_cost, max_capacity, penalty_value, time_window = time_window, route = route, fleet_size = fleet_size)   
     fitness          = fitness_function(cost, population_size) 
     cost, population = (list(t) for t in zip(*sorted(zip(cost, population))))
     elite_ind        = elite_distance(population[0], distance_matrix, route = route)
@@ -509,7 +518,7 @@ def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fi
     while (count <= generations-1): 
         offspring        = breeding(cost, population, fitness, distance_matrix, n_depots, elite, velocity, max_capacity, fixed_cost, variable_cost, penalty_value, time_window, parameters, route)   
         offspring        = mutation(offspring, mutation_rate = mutation_rate, elite = elite)
-        cost, population = target_function(offspring, distance_matrix, parameters, velocity, fixed_cost, variable_cost, max_capacity, penalty_value, time_window = time_window, route = route)
+        cost, population = target_function(offspring, distance_matrix, parameters, velocity, fixed_cost, variable_cost, max_capacity, penalty_value, time_window = time_window, route = route, fleet_size = fleet_size)
         fitness          = fitness_function(cost, population_size)  
         cost, population = (list(t) for t in zip(*sorted(zip(cost, population)))) 
         elite_child      = elite_distance(population[0], distance_matrix, route = route)
