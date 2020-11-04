@@ -27,7 +27,7 @@ fixed_cost    = [12 , 25]  # Fixed Cost for Vehicle A = 12; Fixed Cost for Vehic
 variable_cost = [0.5,  1]  # Variable Cost for Vehicle A = 0.5; Variable Cost for Vehicle B = 1
 capacity      = [9  ,  8]  # Capacity of Vehicle A = 9; Capacity of Vehicle B = 8
 velocity      = [50 , 70]  # Average Velocity of Vehicle A = 50; Average Velocity of Vehicle B = 70. The Average Velocity Value is Used as a Constant that Divides the Distance Matrix.
-fleet_size    = [1  ,  4]  # An Empty List, e.g  fleet_size = [ ], means the Fleet is Infinite. Non-Empty List, e.g  fleet_size = [15, 7], means that there are available 15 vehicles of type_1 and 7 vehicles of type_2
+fleet_size    = [1  ,  4]  # An Empty List, e.g  fleet_size = [ ], means that the Fleet is Infinite. Non-Empty List, e.g  fleet_size = [15, 7], means that there are available 15 vehicles of type_1 and 7 vehicles of type_2
 
 # Parameters - GA
 penalty_value   = 10000    # GA Target Function Penalty Value for Violating the Problem Constraints
@@ -70,7 +70,7 @@ fixed_cost    = [ 30]    # Fixed Cost for Vehicle A = 30
 variable_cost = [  2]    # Variable Cost for Vehicle A = 2
 capacity      = [150]    # Capacity of Vehicle A = 150
 velocity      = [ 70]    # Average Velocity of Vehicle A = 70. The Average Velocity Value is Used as a Constant that Divides the Distance Matrix.
-fleet_size    = [   ]    # An Empty List, e.g  fleet_size = [ ], means the Fleet is Infinite. Non-Empty List, e.g  fleet_size = [15, 7], means that there are available 15 vehicles of type_1 and 7 vehicles of type_2
+fleet_size    = [   ]    # An Empty List, e.g  fleet_size = [ ], means that the Fleet is Infinite. Non-Empty List, e.g  fleet_size = [15, 7], means that there are available 15 vehicles of type_1 and 7 vehicles of type_2
 
 # Parameters - GA
 penalty_value   = 10000  # GA Target Function Penalty Value for Violating the Problem Constraints
