@@ -187,7 +187,6 @@ def show_report(solution, distance_matrix, parameters, velocity, fixed_cost, var
     return report_df
 
 # Function: Route Evalution & Correction
-# Function: Route Evalution & Correction
 def target_function(population, distance_matrix, parameters, velocity, fixed_cost, variable_cost, capacity, penalty_value, time_window, route, fleet_size = []):
     cost     = [[0] for i in range(len(population))]
     tw_late  = parameters[:, 2]
