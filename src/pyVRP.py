@@ -31,11 +31,12 @@ def build_distance_matrix(coordinates):
    return np.sqrt(np.einsum('ijk,ijk->ij',  b - a,  b - a)).squeeze()
 
 # Function: Tour Plot
-def plot_tour_coordinates (coordinates, solution, n_depots, route):
+def plot_tour_coordinates (coordinates, solution, n_depots, route, size_x = 10, size_y = 10):
     depot     = solution[0]
     city_tour = solution[1]
     cycol     = cycle(['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', '#bf77f6', '#ff9408', '#d1ffbd', '#c85a53', '#3a18b1', '#ff796c', '#04d8b2', '#ffb07c', '#aaa662', '#0485d1', '#fffe7a', '#b0dd16', '#85679', '#12e193', '#82cafc', '#ac9362', '#f8481c', '#c292a1', '#c0fa8b', '#ca7b80', '#f4d054', '#fbdd7e', '#ffff7e', '#cd7584', '#f9bc08', '#c7c10c'])
     plt.style.use('ggplot')
+    plt.figure(figsize = [size_x, size_y])
     for j in range(0, len(city_tour)):
         if (route == 'closed'):
             xy = np.zeros((len(city_tour[j]) + 2, 2))
