@@ -141,7 +141,7 @@ def evaluate_cost_penalty(dist, time, wait, cap, capacity, parameters, depot, su
 
 # Function: Solution Report
 def show_report(solution, distance_matrix, parameters, velocity, fixed_cost, variable_cost, route, time_window):
-    column_names = ['Route', 'Vehicle', 'Activity', 'Job', 'Arrive Load', 'Leave Load', 'Wait Time', 'Arrive Time','Leave Time', 'Distance', 'Costs']
+    column_names = ['Route', 'Vehicle', 'Activity', 'Job', 'Arrive_Load', 'Leave_Load', 'Wait_Time', 'Arrive_Time','Leave_Time', 'Distance', 'Costs']
     tt         = 0
     td         = 0 
     tc         = 0
