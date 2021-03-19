@@ -157,8 +157,8 @@ def show_report(solution, distance_matrix, parameters, velocity, fixed_cost, var
                 cap[n+1] = cap[-1]
             else:
                 cap[n+1] = cap[n] - demand[solution[1][i][n]]
-        cap[0]     = cap[-1]
-        cap[-1]    = 0
+        cap[0]    = cap[-1]
+        cap[-1]   = 0
         leave_cap = copy.deepcopy(cap)
         for n in range(1, len(leave_cap)-1):
             leave_cap[n] = cap[n+1] 
@@ -212,7 +212,7 @@ def target_function(population, distance_matrix, parameters, velocity, fixed_cos
                 time       = []
             cap    = evaluate_capacity(parameters, depot = individual[0][i], subroute = individual[1][i])
             cost_s = evaluate_cost(dist, wait, parameters, depot = individual[0][i], subroute = individual[1][i], fixed_cost = [fixed_cost[individual[2][i][0]]], variable_cost = [variable_cost[individual[2][i][0]]], time_window = time_window)      
-            pnlt       = pnlt + sum( x >  capacity[individual[2][i][0]] for x in cap[0:-1] )
+            pnlt   = pnlt + sum( x >  capacity[individual[2][i][0]] for x in cap[0:-1] )
             if(time_window == 'with'):
                 if (route == 'open'):
                     subroute_ = individual[0][i] + individual[1][i]
