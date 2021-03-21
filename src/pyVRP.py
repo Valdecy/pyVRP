@@ -436,7 +436,7 @@ def crossover_vrp_bcr(parent_1, parent_2, distance_matrix, velocity, capacity, f
     return offspring
 
 # Function: Breeding
-def breeding(cost, population, fitness, distance_matrix, n_depots, elite, velocity, capacity, fixed_cost, variable_cost, penalty_value, time_window, parameters, route):
+def breeding(cost, population, fitness, distance_matrix, n_depots, elite, velocity, capacity, fixed_cost, variable_cost, penalty_value, time_window, parameters, route, vehicle_types):
     offspring = copy.deepcopy(population) 
     if (elite > 0):
         cost, population = (list(t) for t in zip(*sorted(zip(cost, population))))
@@ -569,7 +569,7 @@ def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fi
     solution         = copy.deepcopy(population[0])
     print('Generation = ', count, ' Distance = ', elite_ind, ' f(x) = ', round(cost[0][0],2)) 
     while (count <= generations-1): 
-        offspring        = breeding(cost, population, fitness, distance_matrix, n_depots, elite, velocity, max_capacity, fixed_cost, variable_cost, penalty_value, time_window, parameters, route)   
+        offspring        = breeding(cost, population, fitness, distance_matrix, n_depots, elite, velocity, max_capacity, fixed_cost, variable_cost, penalty_value, time_window, parameters, route, vehicle_types)   
         offspring        = mutation(offspring, mutation_rate = mutation_rate, elite = elite)
         cost, population = target_function(offspring, distance_matrix, parameters, velocity, fixed_cost, variable_cost, max_capacity, penalty_value, time_window = time_window, route = route, fleet_size = fleet_size)
         fitness          = fitness_function(cost, population_size)  
