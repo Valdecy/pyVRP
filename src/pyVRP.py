@@ -1,5 +1,16 @@
 ############################################################################
 
+# Created by: Prof. Valdecy Pereira, D.Sc.
+# UFF - Universidade Federal Fluminense (Brazil)
+# email:  valdecy.pereira@gmail.com
+# Course: Metaheuristics
+# Lesson: Genetic Algorithm
+
+# Citation:
+# PEREIRA, V. (2018). Project: Metaheuristic-Genetic_Algorithm, File: Python-MH-Genetic Algorithm.py, GitHub repository: <https://github.com/Valdecy/Metaheuristic-Genetic_Algorithm>
+
+############################################################################
+
 # Required Libraries
 import pandas as pd
 import random
@@ -13,6 +24,10 @@ from matplotlib import pyplot as plt
 plt.style.use('bmh')
 
 ############################################################################
+
+# Function: Euclidean Distance
+#def euclidean_distance(x, y):
+   #return np.linalg.norm(x - y)
 
 # Function: Build Coordinates
 def build_coordinates(distance_matrix):  
@@ -55,7 +70,7 @@ def plot_tour_coordinates (coordinates, solution, n_depots, route, size_x = 10, 
         plt.plot(xy[:,0], xy[:,1], marker = 's', alpha = 0.5, markersize = 5, color = next(cycol))
     for i in range(0, coordinates.shape[0]):
         if (i < n_depots):
-            plt.plot(coordinates[i,0], coordinates[i,1], marker = 's', alpha = 1.0, markersize = 7, color = 'k')
+            plt.plot(coordinates[i,0], coordinates[i,1], marker = 's', alpha = 1.0, markersize = 7, color = 'k')[0]
             plt.text(coordinates[i,0], coordinates[i,1] + 0.04, i, ha = 'center', va = 'bottom', color = 'k', fontsize = 7)
         else:
             plt.text(coordinates[i,0],  coordinates[i,1] + 0.04, i, ha = 'center', va = 'bottom', color = 'k', fontsize = 7)
@@ -97,17 +112,6 @@ def evaluate_capacity(parameters, depot, subroute):
     capacity  = list(np.cumsum(demand[subroute_]))
     return capacity 
 
-# Function: Subroute Nearest Depot
-def evaluate_depot(n_depots, individual, distance_matrix):
-    d_1 = float('+inf')
-    for i in range(0, n_depots):
-        for j in range(0, len(individual[1])):
-            d_2 = evaluate_distance(distance_matrix, [i], individual[1][j])[-1]
-            if (d_2 < d_1):
-                d_1 = d_2
-                individual[0][j] = [i]
-    return individual
-
 # Function: Subroute Cost
 def evaluate_cost(dist, wait, parameters, depot, subroute, fixed_cost, variable_cost, time_window):
     tw_wc     = parameters[:, 4]
@@ -139,26 +143,73 @@ def evaluate_cost_penalty(dist, time, wait, cap, capacity, parameters, depot, su
     cost[-1] = cost[-1] + pnlt*penalty_value
     return cost[-1]
 
+# Function: Routes Nearest Depot
+def evaluate_depot(n_depots, individual, distance_matrix):
+    d_1 = float('+inf')
+    for i in range(0, n_depots):
+        for j in range(0, len(individual[1])):
+            d_2 = evaluate_distance(distance_matrix, [i], individual[1][j])[-1]
+            if (d_2 < d_1):
+                d_1 = d_2
+                individual[0][j] = [i]
+    return individual
+
+# Function: Routes Best Vehicle
+def evaluate_vehicle(vehicle_types, individual):
+    cost, _     = target_function([individual], distance_matrix, parameters, velocity, fixed_cost, variable_cost, capacity, penalty_value, time_window, route, fleet_size) 
+    individual_ = copy.deepcopy(individual)
+    for i in range(0, len(individual[0])):
+        for j in range(0, vehicle_types):
+            individual_[2][i] = [j]
+            cost_, _          = target_function([individual_], distance_matrix, parameters, velocity, fixed_cost, variable_cost, capacity, penalty_value, time_window, route, fleet_size) 
+            if (cost_ < cost):
+                cost             = cost_
+                individual[2][i] = [j]     
+                individual_      = copy.deepcopy(individual)
+    return individual
+
+# Function: Routes Break Capacity
+def cap_break(vehicle_types, individual):
+    individual_ = copy.deepcopy(individual)
+    solution    = [[], [], []]
+    for i in range(0, len(individual_[0])):
+        cap   = evaluate_capacity(parameters, individual_[0][i], individual_[1][i]) 
+        sep   = [x >  capacity[individual_[2][i][0]] for x in cap[1:-1] ]
+        sep_f = [individual_[1][i][x] for x in range(0, len(individual_[1][i])) if sep[x] == False]
+        sep_t = [individual_[1][i][x] for x in range(0, len(individual_[1][i])) if sep[x] == True ]
+        if (len(sep_t) > 0 and len(sep_f) > 0):
+            solution[0].append(individual_[0][i])
+            solution[0].append(individual_[0][i])
+            solution[1].append(sep_f)
+            solution[1].append(sep_t)
+            solution[2].append(individual_[2][i])
+            solution[2].append(individual_[2][i])
+        if (len(sep_t) > 0 and len(sep_f) == 0):
+            solution[0].append(individual_[0][i])
+            solution[1].append(sep_t)
+            solution[2].append(individual_[2][i])
+        if (len(sep_t) == 0 and len(sep_f) > 0):
+            solution[0].append(individual_[0][i])
+            solution[1].append(sep_f)
+            solution[2].append(individual_[2][i])
+    individual_ = copy.deepcopy(solution)
+    return individual_
+
 # Function: Solution Report
 def show_report(solution, distance_matrix, parameters, velocity, fixed_cost, variable_cost, route, time_window):
     column_names = ['Route', 'Vehicle', 'Activity', 'Job', 'Arrive_Load', 'Leave_Load', 'Wait_Time', 'Arrive_Time','Leave_Time', 'Distance', 'Costs']
     tt         = 0
     td         = 0 
     tc         = 0
-    demand     = parameters[:, 0]
     tw_st      = parameters[:, 3]
     report_lst = []
     for i in range(0, len(solution[1])):
         dist       = evaluate_distance(distance_matrix, solution[0][i], solution[1][i])
         wait, time = evaluate_time(distance_matrix, parameters, solution[0][i], solution[1][i], velocity = [velocity[solution[2][i][0]]])
-        cap        = evaluate_capacity(parameters, solution[0][i], solution[1][i]) 
-        for n in range(0,len(solution[1][i])): 
-            if (n == 0):
-                cap[n+1] = cap[-1]
-            else:
-                cap[n+1] = cap[n] - demand[solution[1][i][n]]
-        cap[0]    = cap[-1]
-        cap[-1]   = 0
+        reversed_sol = copy.deepcopy(solution[1][i])
+        reversed_sol.reverse()
+        cap        = evaluate_capacity(parameters, solution[0][i], reversed_sol) 
+        cap.reverse()
         leave_cap = copy.deepcopy(cap)
         for n in range(1, len(leave_cap)-1):
             leave_cap[n] = cap[n+1] 
@@ -212,7 +263,7 @@ def target_function(population, distance_matrix, parameters, velocity, fixed_cos
                 time       = []
             cap    = evaluate_capacity(parameters, depot = individual[0][i], subroute = individual[1][i])
             cost_s = evaluate_cost(dist, wait, parameters, depot = individual[0][i], subroute = individual[1][i], fixed_cost = [fixed_cost[individual[2][i][0]]], variable_cost = [variable_cost[individual[2][i][0]]], time_window = time_window)      
-            pnlt   = pnlt + sum( x >  capacity[individual[2][i][0]] for x in cap[0:-1] )
+            pnlt       = pnlt + sum( x >  capacity[individual[2][i][0]] for x in cap[0:-1] )
             if(time_window == 'with'):
                 if (route == 'open'):
                     subroute_ = individual[0][i] + individual[1][i]
@@ -415,7 +466,10 @@ def breeding(cost, population, fitness, distance_matrix, n_depots, elite, veloci
                 offspring[i] = crossover_vrp_brbax(parent_2, parent_1)
                 offspring[i] = crossover_vrp_bcr(offspring[i], parent_1, distance_matrix, velocity, capacity, fixed_cost, variable_cost, penalty_value, time_window = time_window, parameters = parameters, route = route)
         if (n_depots > 1):
-            offspring[i] = evaluate_depot(n_depots, offspring[i], distance_matrix)  
+            offspring[i] = evaluate_depot(n_depots, offspring[i], distance_matrix) 
+        if (vehicle_types > 1):
+            offspring[i] = evaluate_vehicle(vehicle_types, offspring[i])
+    offspring[i] = cap_break(vehicle_types, offspring[i])
     return offspring
 
 # Function: Mutation - Swap
@@ -470,7 +524,7 @@ def mutation(offspring, mutation_rate, elite):
                 probability = int.from_bytes(os.urandom(8), byteorder = 'big') / ((1 << 64) - 1)
                 if (probability <= mutation_rate):
                     rand = int.from_bytes(os.urandom(8), byteorder = 'big') / ((1 << 64) - 1)
-                    cut  = random.sample(list(range(0,len(offspring[i][1][k]))), 2)
+                    cut  = random.sample(list(range(0, len(offspring[i][1][k]))), 2)
                     cut.sort()
                     C    = offspring[i][1][k][cut[0]:cut[1]+1]
                     if (rand <= 0.5):
@@ -505,8 +559,7 @@ def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fi
         for i in range(0, len(max_capacity)):
             max_capacity[i] = float('+inf') 
     for i in range(0, n_depots):
-        parameters[i, 0] = 0
-    
+        parameters[i, 0] = 0  
     population       = initial_population(coordinates, distance_matrix, population_size = population_size, vehicle_types = vehicle_types, n_depots = n_depots, model = model)
     cost, population = target_function(population, distance_matrix, parameters, velocity, fixed_cost, variable_cost, max_capacity, penalty_value, time_window = time_window, route = route, fleet_size = fleet_size)   
     fitness          = fitness_function(cost, population_size) 
@@ -533,5 +586,3 @@ def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fi
     end = tm.time()
     print('Algorithm Time: ', round((end - start),2), ' seconds')
     return solution_report, solution 
-
-############################################################################
