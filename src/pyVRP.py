@@ -155,7 +155,7 @@ def evaluate_depot(n_depots, individual, distance_matrix):
     return individual
 
 # Function: Routes Best Vehicle
-def evaluate_vehicle(vehicle_types, individual):
+def evaluate_vehicle(vehicle_types, individual, distance_matrix, parameters, velocity, fixed_cost, variable_cost, capacity, penalty_value, time_window, route, fleet_size):
     cost, _     = target_function([individual], distance_matrix, parameters, velocity, fixed_cost, variable_cost, capacity, penalty_value, time_window, route, fleet_size) 
     individual_ = copy.deepcopy(individual)
     for i in range(0, len(individual[0])):
@@ -169,7 +169,7 @@ def evaluate_vehicle(vehicle_types, individual):
     return individual
 
 # Function: Routes Break Capacity
-def cap_break(vehicle_types, individual):
+def cap_break(vehicle_types, individual, parameters):
     individual_ = copy.deepcopy(individual)
     solution    = [[], [], []]
     for i in range(0, len(individual_[0])):
@@ -436,7 +436,7 @@ def crossover_vrp_bcr(parent_1, parent_2, distance_matrix, velocity, capacity, f
     return offspring
 
 # Function: Breeding
-def breeding(cost, population, fitness, distance_matrix, n_depots, elite, velocity, capacity, fixed_cost, variable_cost, penalty_value, time_window, parameters, route, vehicle_types):
+def breeding(cost, population, fitness, distance_matrix, n_depots, elite, velocity, capacity, fixed_cost, variable_cost, penalty_value, time_window, parameters, route, vehicle_types, fleet_size):
     offspring = copy.deepcopy(population) 
     if (elite > 0):
         cost, population = (list(t) for t in zip(*sorted(zip(cost, population))))
@@ -468,8 +468,8 @@ def breeding(cost, population, fitness, distance_matrix, n_depots, elite, veloci
         if (n_depots > 1):
             offspring[i] = evaluate_depot(n_depots, offspring[i], distance_matrix) 
         if (vehicle_types > 1):
-            offspring[i] = evaluate_vehicle(vehicle_types, offspring[i])
-    offspring[i] = cap_break(vehicle_types, offspring[i])
+            offspring[i] = evaluate_vehicle(vehicle_types, offspring[i], distance_matrix, parameters, velocity, fixed_cost, variable_cost, capacity, penalty_value, time_window, route, fleet_size)
+    offspring[i] = cap_break(vehicle_types, offspring[i], parameters)
     return offspring
 
 # Function: Mutation - Swap
@@ -569,7 +569,7 @@ def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fi
     solution         = copy.deepcopy(population[0])
     print('Generation = ', count, ' Distance = ', elite_ind, ' f(x) = ', round(cost[0][0],2)) 
     while (count <= generations-1): 
-        offspring        = breeding(cost, population, fitness, distance_matrix, n_depots, elite, velocity, max_capacity, fixed_cost, variable_cost, penalty_value, time_window, parameters, route, vehicle_types)   
+        offspring        = breeding(cost, population, fitness, distance_matrix, n_depots, elite, velocity, max_capacity, fixed_cost, variable_cost, penalty_value, time_window, parameters, route, vehicle_types, fleet_size)   
         offspring        = mutation(offspring, mutation_rate = mutation_rate, elite = elite)
         cost, population = target_function(offspring, distance_matrix, parameters, velocity, fixed_cost, variable_cost, max_capacity, penalty_value, time_window = time_window, route = route, fleet_size = fleet_size)
         fitness          = fitness_function(cost, population_size)  
