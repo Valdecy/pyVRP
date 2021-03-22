@@ -166,6 +166,8 @@ def evaluate_vehicle(vehicle_types, individual, distance_matrix, parameters, vel
                 cost             = cost_
                 individual[2][i] = [j]     
                 individual_      = copy.deepcopy(individual)
+            else:
+                individual_      = copy.deepcopy(individual)
     return individual
 
 # Function: Routes Break Capacity
