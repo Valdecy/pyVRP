@@ -10,4 +10,4 @@ Try it in **Colab**:
 - VRP with Infinite Fleet ([ Colab Demo ](https://colab.research.google.com/drive/1tIN9uK7jEK1uyHzq7xxjmNS1Jm87t5eQ?usp=sharing))
 - Open VRP ([ Colab Demo ](https://colab.research.google.com/drive/1KSlhRskcRjs5483nBdrxcjEoCwW-4Ns0?usp=sharing))
 - TSP ([ Colab Demo ](https://colab.research.google.com/drive/1WzRKa7aUUe-hV9RFbQwQdPLd0VYNNPIu?usp=sharing))
-- mTSP ([ Colab Demo ](https://colab.research.google.com/drive/1fLCSwpxLi62NJ5ru6uZLOdyBQ-L29piV?usp=sharing)
+- mTSP ([ Colab Demo ](https://colab.research.google.com/drive/1fLCSwpxLi62NJ5ru6uZLOdyBQ-L29piV?usp=sharing))
