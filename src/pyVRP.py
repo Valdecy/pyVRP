@@ -170,30 +170,37 @@ def evaluate_vehicle(vehicle_types, individual, distance_matrix, parameters, vel
 
 # Function: Routes Break Capacity
 def cap_break(vehicle_types, individual, parameters, capacity):
-    individual_ = copy.deepcopy(individual)
-    solution    = [[], [], []]
-    for i in range(0, len(individual_[0])):
-        cap   = evaluate_capacity(parameters, individual_[0][i], individual_[1][i]) 
-        sep   = [x >  capacity[individual_[2][i][0]] for x in cap[1:-1] ]
-        sep_f = [individual_[1][i][x] for x in range(0, len(individual_[1][i])) if sep[x] == False]
-        sep_t = [individual_[1][i][x] for x in range(0, len(individual_[1][i])) if sep[x] == True ]
-        if (len(sep_t) > 0 and len(sep_f) > 0):
-            solution[0].append(individual_[0][i])
-            solution[0].append(individual_[0][i])
-            solution[1].append(sep_f)
-            solution[1].append(sep_t)
-            solution[2].append(individual_[2][i])
-            solution[2].append(individual_[2][i])
-        if (len(sep_t) > 0 and len(sep_f) == 0):
-            solution[0].append(individual_[0][i])
-            solution[1].append(sep_t)
-            solution[2].append(individual_[2][i])
-        if (len(sep_t) == 0 and len(sep_f) > 0):
-            solution[0].append(individual_[0][i])
-            solution[1].append(sep_f)
-            solution[2].append(individual_[2][i])
-    individual_ = copy.deepcopy(solution)
-    return individual_
+    go_on = True
+    while (go_on):
+        individual_ = copy.deepcopy(individual)
+        solution    = [[], [], []]
+        for i in range(0, len(individual_[0])):
+            cap   = evaluate_capacity(parameters, individual_[0][i], individual_[1][i]) 
+            sep   = [x >  capacity[individual_[2][i][0]] for x in cap[1:-1] ]
+            sep_f = [individual_[1][i][x] for x in range(0, len(individual_[1][i])) if sep[x] == False]
+            sep_t = [individual_[1][i][x] for x in range(0, len(individual_[1][i])) if sep[x] == True ]
+            if (len(sep_t) > 0 and len(sep_f) > 0):
+                solution[0].append(individual_[0][i])
+                solution[0].append(individual_[0][i])
+                solution[1].append(sep_f)
+                solution[1].append(sep_t)
+                solution[2].append(individual_[2][i])
+                solution[2].append(individual_[2][i])
+            if (len(sep_t) > 0 and len(sep_f) == 0):
+                solution[0].append(individual_[0][i])
+                solution[1].append(sep_t)
+                solution[2].append(individual_[2][i])
+            if (len(sep_t) == 0 and len(sep_f) > 0):
+                solution[0].append(individual_[0][i])
+                solution[1].append(sep_f)
+                solution[2].append(individual_[2][i])
+        individual_ = copy.deepcopy(solution)
+        if (individual == individual_):
+            go_on = False
+        else:
+            go_on      = True
+            individual = copy.deepcopy(solution)
+    return individual
 
 # Function: Solution Report
 def show_report(solution, distance_matrix, parameters, velocity, fixed_cost, variable_cost, route, time_window):
