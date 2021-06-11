@@ -595,3 +595,5 @@ def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fi
     end = tm.time()
     print('Algorithm Time: ', round((end - start),2), ' seconds')
     return solution_report, solution 
+   
+   ############################################################################
