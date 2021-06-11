@@ -198,7 +198,7 @@ def cap_break(vehicle_types, individual, parameters, capacity):
                 solution[2].append(individual_[2][i])
         individual_ = copy.deepcopy(solution)
         if (individual == individual_):
-            go_on = False
+            go_on      = False
         else:
             go_on      = True
             individual = copy.deepcopy(solution)
@@ -207,17 +207,17 @@ def cap_break(vehicle_types, individual, parameters, capacity):
 # Function: Solution Report
 def show_report(solution, distance_matrix, parameters, velocity, fixed_cost, variable_cost, route, time_window):
     column_names = ['Route', 'Vehicle', 'Activity', 'Job', 'Arrive_Load', 'Leave_Load', 'Wait_Time', 'Arrive_Time','Leave_Time', 'Distance', 'Costs']
-    tt         = 0
-    td         = 0 
-    tc         = 0
-    tw_st      = parameters[:, 3]
-    report_lst = []
+    tt           = 0
+    td           = 0 
+    tc           = 0
+    tw_st        = parameters[:, 3]
+    report_lst   = []
     for i in range(0, len(solution[1])):
-        dist       = evaluate_distance(distance_matrix, solution[0][i], solution[1][i])
-        wait, time = evaluate_time(distance_matrix, parameters, solution[0][i], solution[1][i], velocity = [velocity[solution[2][i][0]]])
+        dist         = evaluate_distance(distance_matrix, solution[0][i], solution[1][i])
+        wait, time   = evaluate_time(distance_matrix, parameters, solution[0][i], solution[1][i], velocity = [velocity[solution[2][i][0]]])
         reversed_sol = copy.deepcopy(solution[1][i])
         reversed_sol.reverse()
-        cap        = evaluate_capacity(parameters, solution[0][i], reversed_sol) 
+        cap          = evaluate_capacity(parameters, solution[0][i], reversed_sol) 
         cap.reverse()
         leave_cap = copy.deepcopy(cap)
         for n in range(1, len(leave_cap)-1):
@@ -254,9 +254,9 @@ def target_function(population, distance_matrix, parameters, velocity, fixed_cos
     tw_st    = parameters[:, 3]
     flt_cnt  = [0]*len(fleet_size)
     if (route == 'open'):
-        end =  2 
+        end = 2 
     else:
-        end =  1
+        end = 1
     for k in range(0, len(population)): # k individuals
         individual = copy.deepcopy(population[k])  
         size       = len(individual[1])
@@ -272,7 +272,7 @@ def target_function(population, distance_matrix, parameters, velocity, fixed_cos
                 time       = []
             cap    = evaluate_capacity(parameters, depot = individual[0][i], subroute = individual[1][i])
             cost_s = evaluate_cost(dist, wait, parameters, depot = individual[0][i], subroute = individual[1][i], fixed_cost = [fixed_cost[individual[2][i][0]]], variable_cost = [variable_cost[individual[2][i][0]]], time_window = time_window)      
-            pnlt       = pnlt + sum( x >  capacity[individual[2][i][0]] for x in cap[0:-1] )
+            pnlt   = pnlt + sum( x >  capacity[individual[2][i][0]] for x in cap[0:-1] )
             if(time_window == 'with'):
                 if (route == 'open'):
                     subroute_ = individual[0][i] + individual[1][i]
@@ -287,8 +287,8 @@ def target_function(population, distance_matrix, parameters, velocity, fixed_cos
                     if (v_sum > 0):
                         pnlt = pnlt + v_sum
             cost[k][0] = cost[k][0] + cost_s[-end] + pnlt*penalty_value
-            size = len(individual[1])
-            i = i + 1
+            size       = len(individual[1])
+            i          = i + 1
     cost_total = copy.deepcopy(cost)
     return cost_total, population
 
@@ -377,7 +377,7 @@ def crossover_tsp_bcr(parent_1, parent_2, distance_matrix, velocity, capacity, f
         cap_list       = [evaluate_capacity(parameters, insertion[0], insertion[1][:n] + [A] + insertion[1][n:]) for n in range(0, len(parent_2[1][0]) + 1)]
         insertion_list = [insertion[1][:n] + [A] + insertion[1][n:] for n in range(0, len(parent_2[1][0]) + 1)]
         d_2_list       = [evaluate_cost_penalty(dist_list[n], wait_time_list[n][1], wait_time_list[n][0], cap_list[n], capacity[parent_2[2][0][0]], parameters, insertion[0], insertion_list[n], [fixed_cost[parent_2[2][0][0]]], [variable_cost[parent_2[2][0][0]]], penalty_value, time_window, route) for n in range(0, len(dist_list))]
-        d_2 = min(d_2_list)
+        d_2            = min(d_2_list)
         if (d_2 <= d_1):
             d_1   = d_2
             best  = insertion_list[d_2_list.index(min(d_2_list))]
