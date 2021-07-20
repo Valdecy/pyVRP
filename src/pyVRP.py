@@ -12,6 +12,8 @@
 ############################################################################
 
 # Required Libraries
+import folium
+import folium.plugins
 import pandas as pd
 import random
 import numpy as np
@@ -75,6 +77,40 @@ def plot_tour_coordinates (coordinates, solution, n_depots, route, size_x = 10, 
         else:
             plt.text(coordinates[i,0],  coordinates[i,1] + 0.04, i, ha = 'center', va = 'bottom', color = 'k', fontsize = 7)
     return
+
+# Function: Tour Plot - Lat Long
+def plot_tour_latlong (lat_long, solution, n_depots, route):
+    m       = folium.Map(location = (lat_long.iloc[0][0], lat_long.iloc[0][1]), zoom_start = 14)
+    clients = folium.plugins.MarkerCluster(name = 'Clients').add_to(m)
+    depots  = folium.plugins.MarkerCluster(name = 'Depots').add_to(m)
+    for i in range(0, lat_long.shape[0]):
+        if (i < n_depots):
+            folium.Marker(location = [lat_long.iloc[i][0], lat_long.iloc[i][1]], popup = '<b>Client: </b>%s</br> <b>Adress: </b>%s</br>'%(int(i), 'D'), icon = folium.Icon(color = 'black', icon = 'home')).add_to(depots)
+        else:
+            folium.Marker(location = [lat_long.iloc[i][0], lat_long.iloc[i][1]], popup = '<b>Client: </b>%s</br> <b>Adress: </b>%s</br>'%(int(i), 'C'), icon = folium.Icon(color = 'blue')).add_to(clients)
+    depot     = solution[0]
+    city_tour = solution[1]
+    cycol     = cycle(['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf', '#bf77f6', '#ff9408', '#d1ffbd', '#c85a53', '#3a18b1', '#ff796c', '#04d8b2', '#ffb07c', '#aaa662', '#0485d1', '#fffe7a', '#b0dd16', '#d85679', '#12e193', '#82cafc', '#ac9362', '#f8481c', '#c292a1', '#c0fa8b', '#ca7b80', '#f4d054', '#fbdd7e', '#ffff7e', '#cd7584', '#f9bc08', '#c7c10c'])
+    for j in range(0, len(city_tour)):
+        if (route == 'closed'):
+            ltlng = np.zeros((len(city_tour[j]) + 2, 2))
+        else:
+            ltlng = np.zeros((len(city_tour[j]) + 1, 2))
+        for i in range(0, ltlng.shape[0]):
+            if (i == 0):
+                ltlng[ i, 0] = lat_long.iloc[depot[j][i], 0]
+                ltlng[ i, 1] = lat_long.iloc[depot[j][i], 1]
+                if (route == 'closed'):
+                    ltlng[-1, 0] = lat_long.iloc[depot[j][i], 0]
+                    ltlng[-1, 1] = lat_long.iloc[depot[j][i], 1]
+            if (i > 0 and i < len(city_tour[j])+1):
+                ltlng[i, 0] = lat_long.iloc[city_tour[j][i-1], 0]
+                ltlng[i, 1] = lat_long.iloc[city_tour[j][i-1], 1]
+        c = next(cycol)
+        for i in range(0, ltlng.shape[0]-1):
+          locations = [ (ltlng[i,0], ltlng[i,1]), (ltlng[i+1,0], ltlng[i+1,1])]
+          folium.PolyLine(locations , color = c, weight = 1.5, opacity = 1).add_to(m)
+    return m
 
 # Function: Subroute Distance
 def evaluate_distance(distance_matrix, depot, subroute):    
