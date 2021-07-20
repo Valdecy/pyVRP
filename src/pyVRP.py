@@ -27,10 +27,6 @@ plt.style.use('bmh')
 
 ############################################################################
 
-# Function: Euclidean Distance
-#def euclidean_distance(x, y):
-   #return np.linalg.norm(x - y)
-
 # Function: Build Coordinates
 def build_coordinates(distance_matrix):  
     a           = distance_matrix[0,:].reshape(distance_matrix.shape[0], 1)
