@@ -275,7 +275,8 @@ def show_report(solution, distance_matrix, parameters, velocity, fixed_cost, var
                 tc = tc + cost[j]
             report_lst.append(['#' + str(i+1), solution[2][i][0], activity, subroute[0][j], cap[j], leave_cap[j], round(wait[j],2), arrive_time, round(time[j],2), round(dist[j],2), round(cost[j],2) ])
         report_lst.append(['-//-', '-//-', '-//-', '-//-','-//-', '-//-', '-//-', '-//-', '-//-', '-//-', '-//-'])
-    report_lst.append(['TOTAL', '', '','', '', '', '', '', round(tt,2), round(td,2), round(tc,2)])
+    report_lst.append(['MAX TIME', '', '','', '', '', '', '', round(tt,2), '', ''])
+    report_lst.append(['TOTAL', '', '','', '', '', '', '', '', round(td,2), round(tc,2)])
     report_df = pd.DataFrame(report_lst, columns = column_names)
     return report_df
 
