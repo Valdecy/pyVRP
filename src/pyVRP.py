@@ -607,7 +607,6 @@ def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fi
     fitness          = fitness_function(cost, population_size) 
     cost, population = (list(t) for t in zip(*sorted(zip(cost, population))))
     elite_ind        = elite_distance(population[0], distance_matrix, route = route)
-    cost             = copy.deepcopy(cost)
     solution         = copy.deepcopy(population[0])
     print('Generation = ', count, ' Distance = ', elite_ind, ' f(x) = ', round(cost[0][0],2)) 
     while (count <= generations-1): 
@@ -616,11 +615,9 @@ def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fi
         cost, population = target_function(offspring, distance_matrix, parameters, velocity, fixed_cost, variable_cost, max_capacity, penalty_value, time_window = time_window, route = route, fleet_size = fleet_size)
         fitness          = fitness_function(cost, population_size)  
         cost, population = (list(t) for t in zip(*sorted(zip(cost, population)))) 
-        elite_child      = elite_distance(population[0], distance_matrix, route = route)
-        if(elite_ind > elite_child):
-            elite_ind = elite_child 
-            solution  = copy.deepcopy(population[0])
-        count = count + 1  
+        elite_ind        = elite_distance(population[0], distance_matrix, route = route)
+        solution         = copy.deepcopy(population[0])
+        count            = count + 1  
         print('Generation = ', count, ' Distance = ', elite_ind, ' f(x) = ', round(cost[0][0],2))
     if (graph == True):
         plot_tour_coordinates(coordinates, solution, n_depots = n_depots, route = route)
