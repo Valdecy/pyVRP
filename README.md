@@ -21,3 +21,8 @@ B) **Model**: "n_depots" (an integer that indicates that the first n_depots rows
 C) **Vehicle**: "vehicle_types" (an integer that indicates the different types of vehicles that are available), "fixed_cost" (a list that indicates for each type of vehicle the cost spent for taking that vehicle), "variable_cost" (a list that indicates for each type of vehicle the cost spent for travelled distance), "capacity" (a list that indicates for each type of vehicle the total capacity), "velocity" (a list that indicates for each type of vehicle the average velocity. this value is used as a constant that divides the distance matrix), "fleet_size" (a list that indicates the quantity of each type of vehicle. an empty list means that the fleet is infinite)
 
 D) **Genetic Algorithm**: "penalty_value" (penalty value for violating the problem constraints), "population_size" (an integer that represents the number of individuals in a population), "mutation_rate" (a continuous value between 0 (0%) and 1 (100%) that indicates the probability of mutation), "elite" (an integer representing the number of best individuals preserved from a generation to another), "generations" (an integer indicating the total number of iterations)
+
+# Acknowledgement 
+This section is dedicated to all the people that helped to improve or correct the code. Thank you very much!
+
+* Estela Perez da Cruz Ulhoa Tenorio (10.AUGUST.2021) - Federal Fluminense University.
