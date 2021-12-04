@@ -621,10 +621,10 @@ def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fi
         cost, population = target_function(offspring, distance_matrix, parameters, velocity, fixed_cost, variable_cost, max_capacity, penalty_value, time_window = time_window, route = route, fleet_size = fleet_size)
         cost, population = (list(t) for t in zip(*sorted(zip(cost, population))))
         if (selection == 'rw'):
-            fitness          = fitness_function(cost, population_size)
+            fitness = fitness_function(cost, population_size)
         elif (selection == 'rb'):
-            rank             = [[i] for i in range(1, len(cost)+1)]
-            fitness          = fitness_function(rank, population_size)
+            rank    = [[i] for i in range(1, len(cost)+1)]
+            fitness = fitness_function(rank, population_size)
         elite_child      = elite_distance(population[0], distance_matrix, route = route)
         if(elite_ind > elite_child):
             elite_ind = elite_child 
