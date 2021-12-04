@@ -588,7 +588,7 @@ def elite_distance(individual, distance_matrix, route):
     return round(td,2)
 
 # GA-VRP Function
-def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fixed_cost, variable_cost, capacity, population_size = 5, vehicle_types = 1, n_depots = 1, route = 'closed', model = 'vrp', time_window = 'without', fleet_size = [], mutation_rate = 0.1, elite = 0, generations = 50, penalty_value = 1000, graph = True):    
+def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fixed_cost, variable_cost, capacity, population_size = 5, vehicle_types = 1, n_depots = 1, route = 'closed', model = 'vrp', time_window = 'without', fleet_size = [], mutation_rate = 0.1, elite = 0, generations = 50, penalty_value = 1000, graph = True, selection = 'rw'):    
     start           = tm.time()
     count           = 0
     solution_report = ['None']
@@ -603,27 +603,40 @@ def genetic_algorithm_vrp(coordinates, distance_matrix, parameters, velocity, fi
     for i in range(0, n_depots):
         parameters[i, 0] = 0  
     population       = initial_population(coordinates, distance_matrix, population_size = population_size, vehicle_types = vehicle_types, n_depots = n_depots, model = model)
-    cost, population = target_function(population, distance_matrix, parameters, velocity, fixed_cost, variable_cost, max_capacity, penalty_value, time_window = time_window, route = route, fleet_size = fleet_size)   
-    fitness          = fitness_function(cost, population_size) 
+    cost, population = target_function(population, distance_matrix, parameters, velocity, fixed_cost, variable_cost, max_capacity, penalty_value, time_window = time_window, route = route, fleet_size = fleet_size) 
     cost, population = (list(t) for t in zip(*sorted(zip(cost, population))))
+    if (selection == 'rw'):
+        fitness          = fitness_function(cost, population_size)
+    elif (selection == 'rb'):
+        rank             = [[i] for i in range(1, len(cost)+1)]
+        fitness          = fitness_function(rank, population_size)
     elite_ind        = elite_distance(population[0], distance_matrix, route = route)
+    cost             = copy.deepcopy(cost)
+    elite_cst        = copy.deepcopy(cost[0][0])
     solution         = copy.deepcopy(population[0])
-    print('Generation = ', count, ' Distance = ', elite_ind, ' f(x) = ', round(cost[0][0],2)) 
+    print('Generation = ', count, ' Distance = ', elite_ind, ' f(x) = ', round(elite_cst, 2)) 
     while (count <= generations-1): 
         offspring        = breeding(cost, population, fitness, distance_matrix, n_depots, elite, velocity, max_capacity, fixed_cost, variable_cost, penalty_value, time_window, parameters, route, vehicle_types, fleet_size)   
         offspring        = mutation(offspring, mutation_rate = mutation_rate, elite = elite)
         cost, population = target_function(offspring, distance_matrix, parameters, velocity, fixed_cost, variable_cost, max_capacity, penalty_value, time_window = time_window, route = route, fleet_size = fleet_size)
-        fitness          = fitness_function(cost, population_size)  
-        cost, population = (list(t) for t in zip(*sorted(zip(cost, population)))) 
-        elite_ind        = elite_distance(population[0], distance_matrix, route = route)
-        solution         = copy.deepcopy(population[0])
-        count            = count + 1  
-        print('Generation = ', count, ' Distance = ', elite_ind, ' f(x) = ', round(cost[0][0],2))
+        cost, population = (list(t) for t in zip(*sorted(zip(cost, population))))
+    if (selection == 'rw'):
+        fitness          = fitness_function(cost, population_size)
+    elif (selection == 'rb'):
+        rank             = [[i] for i in range(1, len(cost)+1)]
+        fitness          = fitness_function(rank, population_size)
+        elite_child      = elite_distance(population[0], distance_matrix, route = route)
+        if(elite_ind > elite_child):
+            elite_ind = elite_child 
+            solution  = copy.deepcopy(population[0])
+            elite_cst = copy.deepcopy(cost[0][0])
+        count = count + 1  
+        print('Generation = ', count, ' Distance = ', elite_ind, ' f(x) = ', round(elite_cst, 2))
     if (graph == True):
         plot_tour_coordinates(coordinates, solution, n_depots = n_depots, route = route)
     solution_report = show_report(solution, distance_matrix, parameters, velocity, fixed_cost, variable_cost, route = route, time_window  = time_window)
     end = tm.time()
     print('Algorithm Time: ', round((end - start),2), ' seconds')
-    return solution_report, solution 
+    return solution_report, solution
    
    ############################################################################
