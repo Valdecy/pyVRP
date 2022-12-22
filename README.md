@@ -22,6 +22,9 @@ C) **Vehicle**: "vehicle_types" (an integer that indicates the different types o
 
 D) **Genetic Algorithm**: "penalty_value" (penalty value for violating the problem constraints), "population_size" (an integer that represents the number of individuals in a population), "mutation_rate" (a continuous value between 0 (0%) and 1 (100%) that indicates the probability of mutation), "elite" (an integer representing the number of best individuals preserved from a generation to another), "generations" (an integer indicating the total number of iterations)
 
+# TSP (Travelling Salesman Problem)
+For Specialized Travelling Salesman Problems Algorithms try [pyCombinatorial](https://github.com/Valdecy/pyCombinatorial)
+
 # Acknowledgement 
 This section is dedicated to all the people that helped to improve or correct the code. Thank you very much!
 
