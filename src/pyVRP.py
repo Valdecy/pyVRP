@@ -515,7 +515,7 @@ def breeding(cost, population, fitness, distance_matrix, n_depots, elite, veloci
             offspring[i] = evaluate_depot(n_depots, offspring[i], distance_matrix) 
         if (vehicle_types > 1):
             offspring[i] = evaluate_vehicle(vehicle_types, offspring[i], distance_matrix, parameters, velocity, fixed_cost, variable_cost, capacity, penalty_value, time_window, route, fleet_size)
-    offspring[i] = cap_break(vehicle_types, offspring[i], parameters, capacity)
+        offspring[i] = cap_break(vehicle_types, offspring[i], parameters, capacity)
     return offspring
 
 # Function: Mutation - Swap
