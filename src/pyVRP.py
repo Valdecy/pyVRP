@@ -6,31 +6,26 @@
 # plot_tour_latlong, build_distance_matrix, build_coordinates,
 # initial_population) is preserved — drop-in replacement.
 #
-# Key speed changes vs. the original:
-#   1.  clone_individual() replaces copy.deepcopy in the breeding loop. For
-#       this nested-list-of-ints structure it is ~30–50x faster.
-#   2.  BCR crossover uses an O(1)-per-position *insertion delta* instead of
-#       rebuilding the full route and recomputing cumulative distances for
-#       every candidate position. O(n^2) -> O(n) per inserted customer
-#       (when time_window='without'; 'with' falls back to per-position
-#       eval but still avoids deepcopy and full-array rebuilds).
-#   3.  evaluate_vehicle re-scores only the route whose vehicle changed,
-#       not the whole solution. R*V full-target-function calls per
-#       individual -> R*V cheap single-route costs.
-#   4.  target_function pre-extracts parameter columns once per call and
-#       uses pure numpy indexing inside the per-subroute work.
-#   5.  Random draws use random.random() / random.randrange() instead of
-#       os.urandom. Still seed-reproducible via random.seed(seed).
-#   6.  Fitness computation is fully vectorized.
-#   7.  cap_break has a hard iteration cap so it can never spin.
 ############################################################################
 
-import os
 import time as tm
 import random
-import copy
 import numpy as np
 import pandas as pd
+
+try:
+    from numba import njit
+    _HAS_NUMBA = True
+except ImportError:  # pragma: no cover
+    _HAS_NUMBA = False
+
+    def njit(*args, **kwargs):
+        if args and callable(args[0]) and len(args) == 1 and not kwargs:
+            return args[0]
+
+        def _decorator(func):
+            return func
+        return _decorator
 
 from itertools import cycle
 from matplotlib import pyplot as plt
@@ -61,6 +56,96 @@ def clone_individual(ind):
 def clone_population(pop):
     return [clone_individual(ind) for ind in pop]
 
+
+############################################################################
+# Numba-ready route kernels and lightweight helpers.
+############################################################################
+
+def _route_demand_sum(subroute, demand_col):
+    total = 0.0
+    for node in subroute:
+        total += demand_col[node]
+    return total
+
+
+@njit
+def _route_cost_without_tw_numba(distance_matrix, demand, depot_idx, subroute,
+                                 fixed_cost, variable_cost, cap_lim,
+                                 penalty_value, route_closed):
+    n = subroute.shape[0]
+    if n == 0:
+        return 0.0
+
+    total_dist = 0.0
+    cum_cap = 0.0
+    pnlt = 0
+    prev = depot_idx
+
+    for i in range(n):
+        node = subroute[i]
+        total_dist += distance_matrix[prev, node]
+        cum_cap += demand[node]
+        if cum_cap > cap_lim:
+            pnlt += 1
+        prev = node
+
+    if route_closed == 1:
+        total_dist += distance_matrix[prev, depot_idx]
+
+    return fixed_cost + total_dist * variable_cost + pnlt * penalty_value
+
+
+@njit
+def _route_cost_with_tw_numba(distance_matrix, demand, tw_early, tw_late, tw_st, tw_wc,
+                              depot_idx, subroute, velocity, fixed_cost,
+                              variable_cost, cap_lim, penalty_value, route_closed):
+    n = subroute.shape[0]
+    if n == 0:
+        return 0.0
+
+    total_dist = 0.0
+    wait_total_cost = 0.0
+    cum_cap = 0.0
+    pnlt = 0
+    t = 0.0
+    prev = depot_idx
+
+    for i in range(n):
+        node = subroute[i]
+        leg = distance_matrix[prev, node]
+        total_dist += leg
+        t += leg / velocity
+
+        if t < tw_early[node]:
+            wait = tw_early[node] - t
+            wait_total_cost += wait * tw_wc[node]
+            t = tw_early[node]
+
+        t += tw_st[node]
+        if t > tw_late[node] + tw_st[node]:
+            pnlt += 1
+
+        cum_cap += demand[node]
+        if cum_cap > cap_lim:
+            pnlt += 1
+
+        prev = node
+
+    if route_closed == 1:
+        leg = distance_matrix[prev, depot_idx]
+        total_dist += leg
+        t += leg / velocity
+
+        if t < tw_early[depot_idx]:
+            wait = tw_early[depot_idx] - t
+            wait_total_cost += wait * tw_wc[depot_idx]
+            t = tw_early[depot_idx]
+
+        t += tw_st[depot_idx]
+        if t > tw_late[depot_idx] + tw_st[depot_idx]:
+            pnlt += 1
+
+    return fixed_cost + total_dist * variable_cost + wait_total_cost + pnlt * penalty_value
 
 ############################################################################
 # Geometry
@@ -268,18 +353,26 @@ def evaluate_depot(n_depots, individual, distance_matrix):
 def _route_cost(distance_matrix, parameters, velocity, fixed_cost, variable_cost,
                 capacity, penalty_value, time_window, route, depot, subroute, v_type):
     """Compute penalized cost of a single route for the given vehicle type."""
-    dist = evaluate_distance(distance_matrix, depot, subroute)
-    if time_window == 'with':
-        wait, time = evaluate_time(distance_matrix, parameters, depot, subroute,
-                                   velocity=[velocity[v_type]])
-    else:
-        wait, time = [], []
-    cap = evaluate_capacity(parameters, depot, subroute)
-    return evaluate_cost_penalty(dist, time, wait, cap, capacity[v_type],
-                                 parameters, depot, subroute,
-                                 [fixed_cost[v_type]], [variable_cost[v_type]],
-                                 penalty_value, time_window, route)
+    if len(subroute) == 0:
+        return 0.0
 
+    demand = parameters[:, 0]
+    depot_idx = depot[0]
+    sub_arr = np.asarray(subroute, dtype=np.int64)
+    route_closed = 0 if route == 'open' else 1
+
+    if time_window == 'with':
+        return float(_route_cost_with_tw_numba(distance_matrix, demand,
+                                               parameters[:, 1], parameters[:, 2],
+                                               parameters[:, 3], parameters[:, 4],
+                                               depot_idx, sub_arr, velocity[v_type],
+                                               fixed_cost[v_type], variable_cost[v_type],
+                                               capacity[v_type], penalty_value,
+                                               route_closed))
+    return float(_route_cost_without_tw_numba(distance_matrix, demand, depot_idx,
+                                              sub_arr, fixed_cost[v_type],
+                                              variable_cost[v_type], capacity[v_type],
+                                              penalty_value, route_closed))
 
 def evaluate_vehicle(vehicle_types, individual, distance_matrix, parameters,
                      velocity, fixed_cost, variable_cost, capacity, penalty_value,
@@ -351,13 +444,14 @@ def cap_break(vehicle_types, individual, parameters, capacity, max_iter=64):
 def target_function(population, distance_matrix, parameters, velocity, fixed_cost,
                     variable_cost, capacity, penalty_value, time_window, route,
                     fleet_size=[]):
-    demand  = parameters[:, 0]
-    tw_early= parameters[:, 1]
+    demand = parameters[:, 0]
+    tw_early = parameters[:, 1]
     tw_late = parameters[:, 2]
-    tw_st   = parameters[:, 3]
-    tw_wc   = parameters[:, 4]
+    tw_st = parameters[:, 3]
+    tw_wc = parameters[:, 4]
 
-    end = 2 if route == 'open' else 1
+    route_closed = 0 if route == 'open' else 1
+    use_tw = (time_window == 'with')
     cost = [[0.0] for _ in range(len(population))]
 
     for k in range(len(population)):
@@ -367,54 +461,30 @@ def target_function(population, distance_matrix, parameters, velocity, fixed_cos
         flt_cnt = [0] * len(fleet_size)
 
         for i in range(len(individual[1])):
-            depot = individual[0][i]
             subroute = individual[1][i]
-            v_type = individual[2][i][0]
-            vel = velocity[v_type]
-            fc = fixed_cost[v_type]
-            vc = variable_cost[v_type]
-            cap_lim = capacity[v_type]
-            n = len(subroute)
-
-            # --- Distances along the subroute ---
-            if n == 0:
+            if not subroute:
                 continue
-            path = np.empty(n + 2, dtype=np.int64)
-            path[0] = depot[0]
-            path[1:n + 1] = subroute
-            path[-1] = depot[0]
-            seg = distance_matrix[path[:-1], path[1:]]
-            total_dist = float(seg.sum()) if route == 'closed' else float(seg[:-1].sum())
 
-            # --- Capacity check ---
+            v_type = individual[2][i][0]
+            depot_idx = individual[0][i][0]
             sub_arr = np.asarray(subroute, dtype=np.int64)
-            cum_cap = np.cumsum(demand[sub_arr])
-            pnlt += int(np.sum(cum_cap > cap_lim))
 
-            # --- Time windows ---
-            wait_total_cost = 0.0
-            if time_window == 'with':
-                t = 0.0
-                prev = depot[0]
-                nodes = list(subroute) + [depot[0]]
-                for node in nodes:
-                    t += distance_matrix[prev, node] / vel
-                    if t < tw_early[node]:
-                        wait_total_cost += (tw_early[node] - t) * tw_wc[node]
-                        t = tw_early[node]
-                    t += tw_st[node]
-                    if t > tw_late[node] + tw_st[node]:
-                        pnlt += 1
-                    prev = node
+            if use_tw:
+                total += float(_route_cost_with_tw_numba(
+                    distance_matrix, demand, tw_early, tw_late, tw_st, tw_wc,
+                    depot_idx, sub_arr, velocity[v_type], fixed_cost[v_type],
+                    variable_cost[v_type], capacity[v_type], penalty_value,
+                    route_closed
+                ))
+            else:
+                total += float(_route_cost_without_tw_numba(
+                    distance_matrix, demand, depot_idx, sub_arr,
+                    fixed_cost[v_type], variable_cost[v_type],
+                    capacity[v_type], penalty_value, route_closed
+                ))
 
-            # --- Fleet size ---
             if fleet_size:
                 flt_cnt[v_type] += 1
-
-            # --- Cost assembly ---
-            # Original's final cost for the subroute: fc + total_dist*vc + wait_time_weighted_cost
-            route_cost = fc + total_dist * vc + wait_total_cost
-            total += route_cost
 
         if fleet_size:
             for v in range(len(fleet_size)):
@@ -425,11 +495,6 @@ def target_function(population, distance_matrix, parameters, velocity, fixed_cos
         cost[k][0] = total + pnlt * penalty_value
 
     return cost, population
-
-
-############################################################################
-# Initial population, fitness, selection
-############################################################################
 
 def initial_population(coordinates='none', distance_matrix='none', population_size=5,
                        vehicle_types=1, n_depots=1, model='vrp'):
@@ -567,6 +632,9 @@ def crossover_vrp_bcr(parent_1, parent_2, distance_matrix, velocity, capacity,
                       parameters, route):
     s = random.randrange(len(parent_1[0]))
     offspring = clone_individual(parent_2)
+    demand_col = parameters[:, 0]
+    route_demands = [_route_demand_sum(rt, demand_col) for rt in offspring[1]]
+
     if len(parent_1[1][s]) > 1:
         cut = random.sample(range(len(parent_1[1][s])), 2)
         gene = 2
@@ -576,10 +644,15 @@ def crossover_vrp_bcr(parent_1, parent_2, distance_matrix, velocity, capacity,
 
     for idx in range(gene):
         A = parent_1[1][s][cut[idx]]
+        demand_A = demand_col[A]
+
         # Remove A wherever it currently lives in offspring
         for m in range(len(offspring[1])):
             if A in offspring[1][m]:
                 offspring[1][m].remove(A)
+                route_demands[m] -= demand_A
+                break
+
         # Find best route + best position to reinsert
         best_m, best_pos, best_delta = 0, 0, float('+inf')
         if time_window == 'with':
@@ -599,25 +672,20 @@ def crossover_vrp_bcr(parent_1, parent_2, distance_matrix, velocity, capacity,
             for m in range(len(offspring[1])):
                 depot_idx = offspring[0][m][0]
                 pos, delta = _best_insertion(distance_matrix, depot_idx, offspring[1][m], A)
-                # capacity penalty if inserting would overflow (position-invariant)
                 v_type = offspring[2][m][0]
-                cap_lim = capacity[v_type]
-                new_total = sum(parameters[x, 0] for x in offspring[1][m]) + parameters[A, 0]
-                score = delta + (penalty_value if new_total > cap_lim else 0.0)
+                score = delta + (penalty_value if route_demands[m] + demand_A > capacity[v_type] else 0.0)
                 if score < best_delta:
                     best_delta, best_m, best_pos = score, m, pos
+
         offspring[1][best_m].insert(best_pos, A)
+        route_demands[best_m] += demand_A
 
     # Prune any empty routes that may have resulted
     for i in range(len(offspring[1]) - 1, -1, -1):
         if not offspring[1][i]:
             del offspring[0][i]; del offspring[1][i]; del offspring[2][i]
+            del route_demands[i]
     return offspring
-
-
-############################################################################
-# Breeding and mutation
-############################################################################
 
 def breeding(cost, population, fitness, distance_matrix, n_depots, elite, velocity,
              capacity, fixed_cost, variable_cost, penalty_value, time_window,
