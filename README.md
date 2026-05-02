@@ -1,3 +1,8 @@
+# ATTENTION:
+
+pyVRP has been discontinued. Please use [pyRouteForge](https://github.com/Valdecy/pyRouteForge), its spiritual successor. pyVRP is maintained only for legacy purposes.
+
+
 # pyVRP
 The pyVRP is python library that solves (using Genetic Algorithms): Capacitated VRP, Multiple Depot VRP, VRP with Time Windows, VRP with Homogeneous or Heterogeneous Fleet, VRP with Finite or Infinite Fleet, Open or Closed Routes, TSP, mTSP and various combination of these types.
 
